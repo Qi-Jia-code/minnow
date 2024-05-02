@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <queue>
+using namespace std;
 
 class Reader;
 class Writer;
@@ -10,7 +12,8 @@ class Writer;
 class ByteStream
 {
 public:
-  explicit ByteStream( uint64_t capacity );
+  //explicit ByteStream( uint64_t capacity , bool close, queue<string> q, uint64_t writeCount, uint64_t readCount);
+  explicit ByteStream( uint64_t capacity);
 
   // Helper functions (provided) to access the ByteStream's Reader and Writer interfaces
   Reader& reader();
@@ -25,6 +28,10 @@ protected:
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
   uint64_t capacity_;
   bool error_ {};
+  bool close_;
+  std::queue<char> q_;
+  uint64_t writeCount_;
+  uint64_t readCount_;
 };
 
 class Writer : public ByteStream
