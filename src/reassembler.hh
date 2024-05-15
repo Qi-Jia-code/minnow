@@ -1,6 +1,7 @@
 #pragma once
 
 #include "byte_stream.hh"
+#include <map>
 
 class Reassembler
 {
@@ -41,5 +42,8 @@ public:
   const Writer& writer() const { return output_.writer(); }
 
 private:
-  ByteStream output_; // the Reassembler writes to this ByteStream
+  ByteStream output_;              // the Reassembler writes to this ByteStream
+  map<uint64_t, string> map_ = {}; // key:first_index, value:data // 重组启的大小
+  uint64_t buffer_size_ = 0;       // 重组启剩余的位置数量
+  uint64_t byte_index_ = 0;        // 维护字符串编号走到哪儿了
 };
