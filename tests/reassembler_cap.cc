@@ -20,7 +20,7 @@ int main()
       test.execute( BytesPushed( 4 ) );
       test.execute( BytesPending( 0 ) );
       test.execute( ReadAll( "cd" ) );
-
+    
       test.execute( Insert { "ef", 4 } );
       test.execute( BytesPushed( 6 ) );
       test.execute( BytesPending( 0 ) );
@@ -46,11 +46,13 @@ int main()
       test.execute( BytesPushed( 4 ) );
       test.execute( BytesPending( 0 ) );
 
+
       test.execute( ReadAll( "cd" ) );
     }
 
     {
       ReassemblerTestHarness test { "overlapping inserts", 1 };
+  
 
       test.execute( Insert { "ab", 0 } );
       test.execute( BytesPushed( 1 ) );
@@ -80,6 +82,7 @@ int main()
       test.execute( BytesPushed( 0 ) );
       test.execute( BytesPending( 1 ) );
 
+
       test.execute( Insert { "bX", 2 } );
       test.execute( BytesPushed( 0 ) );
       test.execute( BytesPending( 1 ) );
@@ -88,7 +91,9 @@ int main()
 
       test.execute( BytesPushed( 2 ) );
       test.execute( BytesPending( 0 ) );
+
       test.execute( ReadAll( "ab" ) );
+
 
       test.execute( Insert { "bc", 1 } );
       test.execute( BytesPushed( 3 ) );
@@ -119,6 +124,7 @@ int main()
       test.execute( ReadAll( "c" ) );
 
       test.execute( IsFinished { true } );
+
     }
 
     // test credit: Tanmay Garg and Agam Mohan Singh Bhatia

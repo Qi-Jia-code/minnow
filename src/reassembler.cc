@@ -1,132 +1,96 @@
 #include "reassembler.hh"
-<<<<<<< HEAD
-#include <algorithm>
+
+#include<iostream>
 using namespace std;
 
-// Reassembler::Reassembler()
-// : first_unacceptable_index_(0),
-// first_unassembled_index_(0),
-// buffer_(),
-// flagbuf_(),
-// endindex_(-1),
-// init_flag_(1){}
 
 void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring )
 {
-  uint64_t remain_capacity = output_.writer().available_capacity();
-  if(init_flag_ == true) {
-    buffer_.resize(remain_capacity, 0);
-    flagbuf_.resize(remain_capacity,0);
-    init_flag_ = false;
+  if(data.empty()&&is_last_substring){
+    output_.writer().close();
+    return ;
   }
-
-  if(is_last_substring == true) {
-    endindex_ = first_index + data.size();
-    first_unassembled_index_ = output_.writer().bytes_pushed();
-    first_unacceptable_index_ = first_unassembled_index_ + remain_capacity;
-    uint64_t str_begin;
-    uint64_t str_end;
-
-    if(!data.empty()) {
-      if(first_index + data.size() > first_unassembled_index_ || 
-        first_index < first_unacceptable_index_) {
-          return;
-      }else {
-        str_begin = first_index;
-        str_end = first_index + data.size() - 1;
-        if(first_index < first_unassembled_index_) {
-          str_begin = first_unassembled_index_ - first_index;
-        }
-        if(first_index + data.size() > first_unacceptable_index_) {
-          str_end = first_unassembled_index_ - 1;
-        }
-
-        for(uint64_t i = str_begin; i < str_end; i++) {
-          buffer_[i - first_unassembled_index_] = data[i - first_index];
-          flagbuf_[i - first_unassembled_index_] = true;
-        }
-      }
-
-    }
-
-    string tmp;
-    while(flagbuf_.front() == true) {
-      tmp += buffer_.front();
-      buffer_.pop_front();
-      flagbuf_.pop_front();
-      buffer_.push_back(0);
-      flagbuf_.push_back(0);
-    }
-
-    output_.writer().push(tmp);
-    if(output_.writer().bytes_pushed() == endindex_) {
-      output_.writer().close();
-    }
+  if(is_last_substring){
+    endindex_ = first_index+data.size();
   }
-
-=======
-#include "byte_stream.hh"
-#include "tcp_sender.hh"
-
-
-using namespace std;
-
-// Reassembler:Reassembler(ByteStream&& output)
-// : output_(output),reas_capacity_(),byte_index(0){}
-/// 插⼊⼀个新的⼦字符串以重新组装到 ByteStream 中
-
-void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring )
-{
-  if(is_last_substring == true) {
-    if(first_index == byte_index_ + 1) {
-      output_.writer().push(data);
-      output_.writer().close();
-    }else {
-      umap.emplace(first_index, data);
-      reas_remainder_ = reas_remainder_ + data.size();
-    }
-  }else if(first_index > byte_index_ + reas_capacity_ && is_last_substring == false) {
+  uint64_t reas_capacity = output_.writer().available_capacity();
+  // 边界条件
+  if ( first_index >= byte_index_ + reas_capacity || ( first_index+data.size() <= byte_index_ ) ) {
     return;
-  }else if(first_index <= byte_index_ + reas_capacity_ && is_last_substring == false){
-    uint64_t temp_index = first_index;
-    if(temp_index == byte_index_ + 1) {
-      output_.writer().push(data);
-      byte_index_ = data.size() + byte_index_;
-      temp_index = byte_index_ + 1;
-      while(reas_remainder_ > 0) {
-        if(umap.find(temp_index) != umap.end()) {
-          output_.writer().push(umap[temp_index]);
-          reas_remainder_ = reas_remainder_ - data.size();
-          byte_index_ = data.size() + byte_index_;
-          temp_index = byte_index_ + 1;
-        }else {
-          break;
-        }
-      }
-    }else {
-      umap.emplace(first_index, data);
-      reas_remainder_ = reas_remainder_ - data.size();
+  }
+
+  //截取左侧数据
+  if(first_index<byte_index_){
+    data=data.substr(byte_index_-first_index);
+    first_index = byte_index_;
+  }
+
+  auto last_it = map_.lower_bound( first_index );
+  auto pre_it = last_it;
+  bool has_pre= pre_it != map_.begin(),has_last = last_it !=map_.end();
+  if(has_pre){
+    pre_it--;
+    // 如果当前数据包被包裹，就剔除当前包
+    if(pre_it->first+pre_it->second.size()>=first_index+data.size()){
+      return ;
     }
   }
-  return;
->>>>>>> 679a202378d4eff417093352dcf31148c6e00989
+  string temp_data = data;
+  uint64_t temp_first_idx = first_index;
+
+  //判断左侧是否能连接并连接
+  if (has_pre&&first_index <= pre_it->first + ( pre_it->second ).size()) {
+    // std::cerr<<first_index<<" "<<pre_it->first<<" "<<pre_it->second<<std::endl;
+    string left_data = pre_it->second.substr(0,first_index-pre_it->first);
+    temp_data = left_data+temp_data;
+    temp_first_idx = pre_it->first;
+    buffer_size_ -=pre_it->second.size();
+    map_.erase(pre_it->first);
+  }
+  //判断是否有完全包裹的包，有的话就剔除掉
+  if(has_last){ 
+     while(last_it!=map_.end()&&last_it->first+last_it->second.size()<=temp_first_idx+temp_data.size()){
+      auto delete_it = last_it;
+      last_it++;
+      buffer_size_-=delete_it->second.size();
+      map_.erase(delete_it);
+     }
+     if(last_it==map_.end())has_last=false;
+  }
+
+  //判断右侧是否能连接并连接
+  if (has_last&&first_index+ data.size() >= last_it->first ) {
+    // std::cerr<<first_index<<" "<<last_it->first<<" "<<last_it->second<<std::endl;
+    string right_data = last_it->second.substr(first_index+ data.size()-last_it->first);
+    temp_data = temp_data + right_data;
+        buffer_size_ -=last_it->second.size();
+    map_.erase(last_it->first );
+  }
+
+  //剪切多余的数据
+  if(temp_first_idx+temp_data.size()> byte_index_ + reas_capacity){
+    temp_data= temp_data.substr(0,byte_index_ + reas_capacity-temp_first_idx);
+  }
+
+  //开始插入
+  //1.如果能与bytestream连接，直接push，不存入map_
+  if ( temp_first_idx == byte_index_) {
+      byte_index_ += temp_data.size();
+      output_.writer().push(temp_data);
+      // std::cerr<<"now:"<<byte_index_<<" "<<endindex_<<std::endl;
+      if(byte_index_ == endindex_){
+        output_.writer().close();
+      }
+      return;
+  }
+
+  //2.插入map
+  map_.emplace(temp_first_idx,temp_data);
+  buffer_size_ +=temp_data.size();
 }
 
-// 重组器本⾝存储了多少字节？
 uint64_t Reassembler::bytes_pending() const
 {
   // Your code here.
-<<<<<<< HEAD
-  return static_cast<uint64_t> (count(flagbuf_.begin(), flagbuf_.end(), true));
-=======
-  return reas_remainder_;
->>>>>>> 679a202378d4eff417093352dcf31148c6e00989
+  return buffer_size_;
 }
-
-
-// private:
-//   ByteStream output_; // the Reassembler writes to this ByteStream
-//   unordered_map<uint64_t, string> umap; //key:first_index, value:data
-//   uint64_t reas_capacity_;//重组启的大小
-//   uint64_t reas_remainder_ = reas_capacity_;//重组启剩余的位置数量
-//   uint64_t byte_index_ = 0; //维护字符串编号走到哪儿了
