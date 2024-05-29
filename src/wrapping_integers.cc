@@ -20,7 +20,7 @@ uint64_t Wrap32::unwrap( Wrap32 zero_point, uint64_t checkpoint ) const
   uint64_t left = next - max_int;
   uint64_t right = next + max_int;
   if(next > checkpoint) {
-    if(next - checkpoint < checkpoint - left) {
+    if(next - checkpoint < checkpoint - left || next < max_int) {
       return next;
     }else {
       return left;

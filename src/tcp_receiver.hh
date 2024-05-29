@@ -27,4 +27,6 @@ public:
 
 private:
   Reassembler reassembler_;
+  Wrap32 w_;
+  uint64_t lastpoint;
 };
