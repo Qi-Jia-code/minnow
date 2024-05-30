@@ -27,6 +27,9 @@ public:
 
 private:
   Reassembler reassembler_;
-  Wrap32 w_;
-  uint64_t lastpoint;
+  Wrap32 w_ = Wrap32(0);
+  std::optional<Wrap32> last_ack_ {};
+  uint64_t checkpoint_ = 0;
+  uint64_t first_index = 0;
+  bool connectStart_  = false;
 };
