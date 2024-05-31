@@ -1,42 +1,30 @@
 #include "tcp_receiver.hh"
+#include <cstdint>
 #include <iostream>
 
 using namespace std;
-#define UINT16_MAX (65535)
+// static constexpr uint16_t UINT16_MAX = 65535;
 
 void TCPReceiver::receive( TCPSenderMessage message )
 {
   // Your code here.
-  if(connectStart_ == false) {
-    if(message.SYN == true) {
-      connectStart_ = true;
-      last_ack_ = message.seqno;//把seqno的序号拿到，方便下次校准是不是这个连接的
-      //uint64_t seqno1 = message.seqno.unwrap(last_ack_.value(),0);//把拿到的的数据包的seqno转成绝对数字，记录这次的位置，好方便下次定位下一个数据包的位置
-      if(message.payload.size()+2 < reassembler_.writer().available_capacity() && message.FIN == true) {
-        reassembler_.insert(0, message.payload, true);
-        return;
-      }else {
-        reassembler_.insert(0, message.payload, false);
-        //cout<<"now3 "<<reassembler_.writer().bytes_pushed()<<endl;
-      }
-    }
-  }else {
-    //std::cout<<"seqno " << message.seqno.unwrap(message.seqno, 0)<<std::endl;
-    last_ack_ = message.seqno;
-    if(message.FIN == true) {
-      checkpoint_ = reassembler_.writer().bytes_pushed() + 1;
-      uint64_t seqno1 = message.seqno.unwrap(last_ack_.value(), checkpoint_);
-      first_index = seqno1 - 1;
-      reassembler_.insert(first_index, message.payload, true);
-      //std::cout<<"is_close"<<this->writer().is_closed()<<std::endl;
+  if ( message.RST ) {
+    reassembler_.reader().set_error();
+    return;
+  }
+  if ( connectStart_ == false ) { // 判断连接是否开始
+    if ( !message.SYN )           // 如果不是连接开始，则丢弃该包
       return;
-    }
-    checkpoint_ = reassembler_.writer().bytes_pushed() + 1;
-    uint64_t seqno1 = message.seqno.unwrap(last_ack_.value(), checkpoint_);
-    first_index = seqno1 - 1;
-    cout<<"now4 "<<reassembler_.writer().bytes_pushed()<<endl;
-    reassembler_.insert(first_index, message.payload, false);
-    cout<<"now2 "<<reassembler_.writer().bytes_pushed()<<endl;
+    connectStart_ = true;
+    zero_point_ = message.seqno; // 拿到初始序列号seq，方便后期32位转64时，记录初试的32位序列
+    reassembler_.insert( 0, message.payload, message.FIN );
+  } else {
+    checkpoint_ = reassembler_.writer().bytes_pushed() + 1; // 上一个数据包放在了哪儿
+    uint64_t seq_index
+      = message.seqno.unwrap( zero_point_, checkpoint_ ); // 32位转64位,zero_point时初试的syn的序列号
+    reassembler_.insert( seq_index - 1,
+                         message.payload,
+                         message.FIN ); // 减一是因为send()数据是从1开始的，但是reassembler是从0开始插入数据的
   }
 }
 
@@ -44,15 +32,16 @@ TCPReceiverMessage TCPReceiver::send() const
 {
   // Your code here.
   TCPReceiverMessage msg {};
-  auto const window_sz = reassembler_.writer().available_capacity();
-  msg.window_size = window_sz < UINT16_MAX ? window_sz : UINT16_MAX;
-
-  if(last_ack_.has_value()) {
-    cout<<"now1 "<<reassembler_.writer().bytes_pushed()<<endl;
-    uint64_t seqno1 = reassembler_.writer().bytes_pushed() + 1 + this->writer().is_closed(); //剔除掉头部又syn和fin的
-    cout<<"seqno1 "<<seqno1<<endl;
-    // cout<<"last_ack_.value()"<<last_ack_.value().<<endl;
-    msg.ackno = Wrap32::wrap(seqno1, last_ack_.value());
+  if ( reassembler_.reader().has_error() || reassembler_.writer().has_error() ) { // 检测到rst，则关闭连接
+    msg.RST = true;
+    return msg;
   }
+  auto const window_sz = reassembler_.writer().available_capacity(); // 窗口大小设置位缓冲区大小
+  msg.window_size = window_sz < UINT16_MAX ? window_sz : UINT16_MAX; // 最大可以设置为多大
+  uint64_t seq_index
+    = reassembler_.writer().bytes_pushed() + 1 + this->writer().is_closed(); // 剔除掉头部又syn和fin的标签
+  if ( connectStart_ )
+    msg.ackno = Wrap32::wrap( seq_index, zero_point_ ); // 发送ack
+
   return msg;
 }

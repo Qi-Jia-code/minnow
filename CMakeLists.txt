@@ -23,4 +23,5 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
 add_subdirectory("${PROJECT_SOURCE_DIR}/apps")
 
+#生成compile_json文件
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

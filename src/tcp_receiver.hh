@@ -3,6 +3,7 @@
 #include "reassembler.hh"
 #include "tcp_receiver_message.hh"
 #include "tcp_sender_message.hh"
+#include "wrapping_integers.hh"
 
 class TCPReceiver
 {
@@ -27,9 +28,7 @@ public:
 
 private:
   Reassembler reassembler_;
-  Wrap32 w_ = Wrap32(0);
-  std::optional<Wrap32> last_ack_ {};
+  Wrap32 zero_point_ = Wrap32( 0 );
   uint64_t checkpoint_ = 0;
-  uint64_t first_index = 0;
-  bool connectStart_  = false;
+  bool connectStart_ = false;
 };
