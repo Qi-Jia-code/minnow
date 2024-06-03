@@ -1,15 +1,14 @@
 #include "byte_stream.hh"
 #include <iostream>
 
-
 using namespace std;
 
-ByteStream::ByteStream(uint64_t capacity) 
-: capacity_( capacity ), close_ (0), q_(),writeCount_(0), readCount_(0){
-}
+ByteStream::ByteStream( uint64_t capacity )
+  : capacity_( capacity ), close_( 0 ), q_(), writeCount_( 0 ), readCount_( 0 )
+{}
 
 bool Writer::is_closed() const
-{ //Has the stream been closed?
+{ // Has the stream been closed?
   // Your code here.
   return close_;
 }
@@ -17,9 +16,9 @@ bool Writer::is_closed() const
 void Writer::push( string data )
 {
   // Your code here.
-  for(auto&& i : data) {
-    if(available_capacity() > 0) {
-      q_.push(i);
+  for ( auto&& i : data ) {
+    if ( available_capacity() > 0 ) {
+      q_.push( i );
       writeCount_++;
     }
   }
@@ -33,7 +32,7 @@ void Writer::close()
 }
 
 uint64_t Writer::available_capacity() const
-{  
+{
   // Your code here.
   uint64_t res = capacity_ - q_.size();
   return res;
@@ -49,7 +48,7 @@ bool Reader::is_finished() const
 {
   // Your code here.
   // Is the stream finished (closed and fully popped)?
-  if(q_.size() == 0 && close_) {
+  if ( q_.size() == 0 && close_ ) {
     return true;
   }
   return false;
@@ -64,19 +63,19 @@ uint64_t Reader::bytes_popped() const
 string_view Reader::peek() const
 {
   // Your code here.
-  return string_view(&q_.front(), 1);
+  return string_view( &q_.front(), 1 );
 }
 
 void Reader::pop( uint64_t len )
 {
   // Your code here.
-  if(len >= capacity_){
-    for(uint64_t i = 0; i < capacity_; i++) {
+  if ( len >= capacity_ ) {
+    for ( uint64_t i = 0; i < capacity_; i++ ) {
       q_.pop();
       readCount_++;
     }
-  }else {
-    for(uint64_t i = 0; i < len; i++) {
+  } else {
+    for ( uint64_t i = 0; i < len; i++ ) {
       q_.pop();
       readCount_++;
     }
@@ -85,7 +84,7 @@ void Reader::pop( uint64_t len )
 }
 
 uint64_t Reader::bytes_buffered() const
-{ 
+{
   // Your code here.
   return q_.size();
 }

@@ -19,7 +19,7 @@ public:
    * The Reassembler's job is to reassemble the indexed substrings (possibly out-of-order
    * and possibly overlapping) back into the original ByteStream. As soon as the Reassembler
    * learns the next byte in the stream, it should write it to the output.
-   *          
+   *
    * If the Reassembler learns about bytes that fit within the stream's available capacity
    * but can't yet be written (because earlier bytes remain unknown), it should store them
    * internally until the gaps are filled in.
@@ -34,7 +34,7 @@ public:
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
 
-  string buffer_clean(uint64_t first_index, string data);
+  string buffer_clean( uint64_t first_index, string data );
   // Access output stream reader // 访问输出流读取器
   Reader& reader() { return output_.reader(); }
   const Reader& reader() const { return output_.reader(); }
@@ -43,10 +43,9 @@ public:
   const Writer& writer() const { return output_.writer(); }
 
 private:
-
   ByteStream output_;              // the Reassembler writes to this ByteStream
   map<uint64_t, string> map_ = {}; // key:first_index, value:data // 重组启的大小
   uint64_t buffer_size_ = 0;       // 重组启剩余的位置数量
-  uint64_t byte_index_ = 0;        // 
+  uint64_t byte_index_ = 0;        //
   uint64_t endindex_ = 0;
 };

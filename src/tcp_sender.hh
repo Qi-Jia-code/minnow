@@ -5,6 +5,7 @@
 #include "tcp_sender_message.hh"
 
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <list>
 #include <memory>
@@ -16,8 +17,24 @@ class TCPSender
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
   TCPSender( ByteStream&& input, Wrap32 isn, uint64_t initial_RTO_ms )
-    : input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms )
-  {}
+    : input_( std::move( input ) )
+    , isn_( isn )
+    , initial_RTO_ms_( initial_RTO_ms )
+    , isn_syn_( 0 )
+    , isn_fin_( 0 )
+    , cur_RTO_ms_( initial_RTO_ms )
+    , isStartTimer_( 0 )
+    , outstanding_bytes_( 0 )
+    , receiving_msg_()
+    , abs_seqno_( 0 )
+    , primaltive_msg_window_size_( 1 )
+    , ready_collection_( {} )
+    , outstanding_collection_( {} )
+    , consecutive_retransmissions_num_( 0 )
+  {
+    receiving_msg_.ackno = isn_;
+    receiving_msg_.window_size = 1;
+  }
 
   /* Generate an empty TCPSenderMessage */
   TCPSenderMessage make_empty_message() const;
@@ -46,6 +63,18 @@ public:
 private:
   // Variables initialized in constructor
   ByteStream input_;
-  Wrap32 isn_;
+  Wrap32 isn_; // 初试序列号
   uint64_t initial_RTO_ms_;
+  bool isn_syn_ = false;
+  bool isn_fin_ = false;
+  uint64_t cur_RTO_ms_;            // 当前重传的时间
+  bool isStartTimer_ = false;      // 是否启动计时器
+  uint64_t outstanding_bytes_ = 0; // 已发送未完成的字节数
+  TCPReceiverMessage receiving_msg_ = TCPReceiverMessage {};
+  uint64_t abs_seqno_ = 0;              // 绝对序列号
+  uint16_t primaltive_msg_window_size_; // 保存最初拿到的msg的窗口大小，用来判断是否需要进行指数回退
+  std::deque<TCPSenderMessage> ready_collection_;       // 记录准备发送的数据包
+  std::deque<TCPSenderMessage> outstanding_collection_; // 记录已发送但是未确认的数据包
+
+  uint64_t consecutive_retransmissions_num_ = 0; // 重传次数
 };
