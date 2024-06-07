@@ -28,6 +28,7 @@ public:
     , outstanding_bytes_( 0 )
     , window_end_( 0 )
     , abs_seqno_( 0 )
+    , need_detect_( false )
     , primaltive_msg_window_size_( 1 )
     , outstanding_collection_( {} )
     , consecutive_retransmissions_num_( 0 )
@@ -69,6 +70,7 @@ private:
   uint64_t outstanding_bytes_ = 0; // 已发送未完成的字节数
   uint64_t window_end_ = 0;        // 可发送数据窗口的右侧，即窗口最右侧字节的绝对序号
   uint64_t abs_seqno_ = 0;         // 下一个未发送数据的第一个字节的绝对序列号
+  bool need_detect_ = false;
   uint16_t primaltive_msg_window_size_; // 保存最初拿到的msg的窗口大小，用来判断是否需要进行指数回退
   std::deque<TCPSenderMessage> outstanding_collection_; // 记录已发送但是未确认的数据包
 
