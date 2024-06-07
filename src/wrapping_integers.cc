@@ -6,12 +6,12 @@
 using namespace std;
 uint64_t max_int = 4294967296;
 
-Wrap32 Wrap32::wrap( uint64_t n, Wrap32 zero_point )
+Wrap32 Wrap32::wrap( uint64_t n, Wrap32 zero_point ) // 要发送出去的数据
 {
   return Wrap32 { static_cast<uint32_t>( n ) + zero_point.raw_value_ };
 }
 
-uint64_t Wrap32::unwrap( Wrap32 zero_point, uint64_t checkpoint ) const
+uint64_t Wrap32::unwrap( Wrap32 zero_point, uint64_t checkpoint ) const // 接收到的数据
 {
   uint32_t seqno = this->raw_value_ - zero_point.raw_value_;
   uint64_t offset = static_cast<uint64_t>( seqno );
